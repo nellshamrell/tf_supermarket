@@ -1,0 +1,5 @@
+#!/bin/sh
+exec 2>&1
+
+cd <%= "#{node['fieri']['home']}/current" %>
+exec chpst -ufieri -P bundle exec sidekiq -e production -t 30 -r <%= "#{node['fieri']['home']}/current/lib/app.rb" %>
