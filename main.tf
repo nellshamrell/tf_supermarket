@@ -60,7 +60,8 @@ resource "template_file" "knife_rb" {
   template = "${file("${path.module}/templates/knife_rb.tpl")}"
   vars {
     chef-server-user = "${var.chef-server-user}"
-    organization = "${module.chef-server.public_ip}"
+    organization = "${var.chef-server-org-name}"
+    chef-server-fqdn = "${module.chef-server.public_ip}"
     chef-server-organization = "${var.chef-server-org-name}"
     supermarket-server-fqdn = "${module.supermarket-server.public_ip}"
   }
@@ -83,6 +84,7 @@ resource "template_file" "knife_rb" {
 
 # Add Supermarket cookbooks to Chef Server
 resource "null_resource" "upload-supermarket-cookbooks" {
+  depends_on = ["template_file.knife_rb"]
   provisioner "local-exec" {
     command = "knife cookbook upload --all --cookbook-path supermarket-server/cookbooks"
   }

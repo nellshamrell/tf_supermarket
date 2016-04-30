@@ -1,4 +1,0 @@
-#!/bin/sh
-exec 2>&1
-cd <%= "#{node['fieri']['home']}/current" %>
-exec chpst -ufieri -P bundle exec unicorn -E production -c <%= "#{node['fieri']['home']}/shared/unicorn.rb" %>
