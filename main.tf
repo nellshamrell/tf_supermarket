@@ -74,7 +74,10 @@ resource "template_file" "knife_rb" {
   provisioner "local-exec" {
     command = "scp -oStrictHostKeyChecking=no -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip}:${var.chef-server-user}.pem .chef"
   }
+}
 
+resource "null_resource" "fetch_chef_server_cert" {
+  depends_on = ["template_file.knife_rb"]
   # Fetch Chef Server Certificate
   provisioner "local-exec" {
     # changing to the parent directory so the trusted cert goes into ../.chef/trusted_certs
@@ -89,9 +92,109 @@ resource "null_resource" "upload-supermarket-cookbooks" {
     command = "knife cookbook upload --all --cookbook-path supermarket-server/cookbooks"
   }
 }
+
 # Create Supermarket oc-id app on Chef Server
+resource "null_resource" "supermarket_oc_id_app" {
+  depends_on = ["template_file.knife_rb"]
+  # Temporarily change ownership of /etc/opscode/chef-server.rb to ubuntu so we can edit it through ssh
+  provisioner "local-exec" {
+    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip} sudo chown ubuntu /etc/opscode/chef-server.rb "
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+      ssh -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip} 'echo \oc_id[\"applications\"] = { \"supermarket\" =\> { \"redirect_uri\" =\> \"https://${module.supermarket-server.public_ip}/auth/chef_oauth2/callback\" } } >> /etc/opscode/chef-server.rb'
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip} sudo chown root /etc/opscode/chef-server.rb "
+  }
+
+  provisioner "local-exec" {
+    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip} sudo chef-server-ctl reconfigure"
+  }
+}
+
+# Get Supermarket oc-id app info
+
+resource "null_resource" "get-supermarket-oc-id-info" {
+  depends_on = ["null_resource.supermarket_oc_id_app"]
+  # Extract uid from supermarket oc-id config
+  provisioner "local-exec" {
+    command = "ssh -oStrictHostKeyChecking=no -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip} \"sudo cat /etc/opscode/oc-id-applications/supermarket.json | grep -Ei '\"uid\".*?,'\" > uid.txt"
+  }
+
+  # Extract secret from supermarket oc-id config
+  provisioner "local-exec" {
+    command = "ssh -oStrictHostKeyChecking=no -i ${var.private_ssh_key_path} ubuntu@${module.chef-server.public_ip} \"sudo cat /etc/opscode/oc-id-applications/supermarket.json | grep -Ei '\"secret\".*?,'\" > secret.txt"
+  }
+}
 
 # Create Supermarket data bag
+resource "null_resource" "supermarket-databag-setup" {
+  depends_on = ["null_resource.get-supermarket-oc-id-info"]
+
+  # Make a data bags directory
+  provisioner "local-exec" {
+    command = "mkdir -p databags/apps"
+  }
+
+  # Make json file for supermarket data bag item
+  # Using a heredoc, rather than a template
+  # Because I could not pass the values of oc-id.txt and secret.txt
+  # to the template because they are dynamically created when the terraform
+  # config runs
+  provisioner "local-exec" {
+    command = <<EOF
+    cat <<FILE > databags/apps/supermarket.json
+{
+  "id": "supermarket",
+  "fqdn": "${module.supermarket-server.public_ip}",
+  "chef_server_url": "https://${module.chef-server.public_ip}",
+  ${file("uid.txt")}
+  ${file("secret.txt")}
+  "features": "tools,fieri,github,announcement"
+}
+FILE
+EOF
+  }
+}
+
+resource "null_resource" "supermarket-databag-upload" {
+  depends_on = ["null_resource.supermarket-databag-setup","null_resource.fetch_chef_server_cert"]
+  # Create the apps data bag on the Chef server
+  provisioner "local-exec" {
+    command = "knife data bag create apps"
+  }
+
+  # Create supermarket data bag item on the Chef server
+  provisioner "local-exec" {
+    command = "knife data bag from file apps databags/apps/supermarket.json"
+  }
+}
+
+resource "null_resource" "supermarket-node-setup" {
+  depends_on = ["null_resource.supermarket-databag-upload"]
+  provisioner "local-exec" {
+    command = "knife bootstrap ${module.supermarket-server.public_ip} -i ${var.private_ssh_key_path} -N supermarket-node -x ubuntu --sudo"
+  }
+}
+
+resource "null_resource" "configure-supermarket-node-run-list" {
+  depends_on = ["null_resource.supermarket-node-setup"]
+  provisioner "local-exec" {
+    command = "knife node run_list add supermarket-node 'recipe[supermarket-wrapper::default]'"
+  }
+}
+
+resource "null_resource" "supermarket-node-client" {
+  depends_on = ["null_resource.configure-supermarket-node-run-list"]
+  provisioner "local-exec" {
+    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.supermarket-server.public_ip} 'sudo chef-client'"
+  }
+}
+
 
 # Create Supermarket node
 
