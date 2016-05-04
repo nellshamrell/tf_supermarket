@@ -13,5 +13,8 @@ node.set['supermarket_omnibus']['config']['fqdn'] = app['fqdn']
 node.set['supermarket_omnibus']['config']['host'] = app['fqdn']
 node.set['supermarket_omnibus']['config']['features'] = app['features']
 
+node.set['supermarket_omnibus']['config']['s3_bucket'] = app['s3_bucket']
+node.set['supermarket_omnibus']['config']['s3_access_key_id'] = app['s3_access_key_id']
+node.set['supermarket_omnibus']['config']['s3_secret_access_key'] = app['s3_secret_access_key']
 
 include_recipe 'supermarket-omnibus-cookbook'

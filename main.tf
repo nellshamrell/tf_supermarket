@@ -52,6 +52,16 @@ module "supermarket-server" {
 
 # Spin up supermarket bucket
 
+module "supermarket-bucket" {
+  source = "./supermarket-bucket"
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
+  region = "${var.region}"
+  aws_iam_username = "${var.aws_iam_username}"
+  bucket_name = "${var.bucket_name}"
+  bucket_acl = "${var.bucket_acl}"
+}
+
 # Spin up Fieri server
 
 # Configure workstation
@@ -154,7 +164,10 @@ resource "null_resource" "supermarket-databag-setup" {
   "chef_server_url": "https://${module.chef-server.public_ip}",
   ${file("uid.txt")}
   ${file("secret.txt")}
-  "features": "tools,fieri,github,announcement"
+  "features": "tools,fieri,github,announcement",
+  "s3_bucket": "${var.bucket_name}",
+  "s3_access_key_id": "${var.access_key}",
+  "s3_secret_access_key": "${var.secret_key}"
 }
 FILE
 EOF
@@ -174,6 +187,7 @@ resource "null_resource" "supermarket-databag-upload" {
   }
 }
 
+# Create Supermarket node
 resource "null_resource" "supermarket-node-setup" {
   depends_on = ["null_resource.supermarket-databag-upload"]
   provisioner "local-exec" {
@@ -181,6 +195,7 @@ resource "null_resource" "supermarket-node-setup" {
   }
 }
 
+# Configure Supermarket node
 resource "null_resource" "configure-supermarket-node-run-list" {
   depends_on = ["null_resource.supermarket-node-setup"]
   provisioner "local-exec" {
@@ -195,10 +210,13 @@ resource "null_resource" "supermarket-node-client" {
   }
 }
 
-
-# Create Supermarket node
-
-# Configure Supermarket node
+# Fetch Supermarket SSL Cert to workstation
+resource "null_resource" "fetch-supermarket-ssl-cert" {
+  depends_on = ["template_file.knife_rb"]
+  provisioner "local-exec" {
+    command = "knife ssl fetch https://${module.supermarket-server.public_ip}"
+  } 
+}
 
 # Create Fieri data bag
 
