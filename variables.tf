@@ -17,3 +17,5 @@ variable "chef-server-org-full-name" {}
 
 variable "bucket_name" {}
 variable "bucket_acl" {}
+
+variable "fieri_key" {}
