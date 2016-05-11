@@ -111,7 +111,7 @@ resource "null_resource" "fetch_chef_server_cert" {
 
 # Add Supermarket cookbooks to Chef Server
 resource "null_resource" "upload-supermarket-cookbooks" {
-  depends_on = ["template_file.knife_rb"]
+  depends_on = ["template_file.knife_rb", "null_resource.fetch_chef_server_cert"]
   provisioner "local-exec" {
     command = "knife cookbook upload --all --cookbook-path supermarket-server/cookbooks"
   }
@@ -231,7 +231,7 @@ resource "null_resource" "fetch-supermarket-ssl-cert" {
   depends_on = ["null_resource.supermarket-node-client"]
   provisioner "local-exec" {
     command = "knife ssl fetch https://${module.supermarket-server.public_ip}"
-  } 
+  }
 }
 
 # Add Fieri Cookbooks to Chef Server
@@ -264,7 +264,7 @@ EOF
   # Upload json file to create data bag
   provisioner "local-exec" {
     command = "knife data bag from file apps databags/apps/fieri.json"
-  }  
+  }
 }
 
 # Create Fieri node
