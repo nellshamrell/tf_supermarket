@@ -1,0 +1,20 @@
+access_key = "Your AWS Access Key"
+secret_key = "Your AWS Secret Key"
+region = "Your preferred AWS region"  (NOTE: This MUST be us-east-1 until this issue is resolved https://github.com/chef/supermarket/issues/1266)
+instance_type = "You preferred AWS instance type"
+ami = "Your preferred AWS AMI id"
+aws_iam_username = "Username of your AWS IAM user"
+
+private_ssh_key_path = "Path to your AWS private key (part of your AWS key pair)"
+key_name = "Name of your AWS KEY PAIR"
+chef-server-user = "username for your chef server user"
+chef-server-user-full-name = "Full name of your Chef Server User"
+chef-server-user-email = "Email address to associate with your Chef Server User"
+chef-server-user-password = "Password for your Chef User Account"
+chef-server-org-name = "Name for your organization on the Chef Server"
+chef-server-org-full-name = "Full Name for your organization on the Chef Server"
+
+bucket_name = "Your preferred bucket name"
+bucket_acl = "private"
+
+fieri_key = "Random generated string"
