@@ -62,22 +62,6 @@ module "supermarket-bucket" {
   bucket_acl = "${var.bucket_acl}"
 }
 
-# Spin up Fieri server
-module "fieri-server" {
-  source = "./fieri-server"
-
-  access_key = "${var.access_key}"
-  secret_key = "${var.secret_key}"
-  region = "${var.region}"
-  instance_type = "${var.instance_type}"
-  ami = "${var.ami}"
-
-  # Must be assigned to the default security group to be able to connect to other instances (i.e. the RDS DB) on the same VPC
-  security_groups = "${module.security-group.security-group-name},default"
-
-  key_name = "${var.key_name}"
-}
-
 # Configure workstation
 
 resource "template_file" "knife_rb" {
@@ -182,7 +166,7 @@ resource "null_resource" "supermarket-databag-setup" {
   "s3_bucket": "${var.bucket_name}",
   "s3_access_key_id": "${var.access_key}",
   "s3_secret_access_key": "${var.secret_key}",
-  "fieri_url": "http://${module.fieri-server.public_dns}/jobs",
+  "fieri_results_endpoint": "https://${module.supermarket-server.public_dns}/api/v1/cookbook-versions/evaluation",
   "fieri_key": "${var.fieri_key}"
 }
 FILE
@@ -231,102 +215,5 @@ resource "null_resource" "fetch-supermarket-ssl-cert" {
   depends_on = ["null_resource.supermarket-node-client"]
   provisioner "local-exec" {
     command = "knife ssl fetch https://${module.supermarket-server.public_ip}"
-  }
-}
-
-# Add Fieri Cookbooks to Chef Server
-resource "null_resource" "upload-fieri-cookbooks" {
-  depends_on = ["template_file.knife_rb", "null_resource.upload-supermarket-cookbooks"]
-  provisioner "local-exec" {
-    command = "knife cookbook upload --all --cookbook-path fieri-server/cookbooks"
-  }
-}
-
-
-# Create Fieri data bag
-resource "null_resource" "fieri-databag-setup" {
-  depends_on = ["null_resource.supermarket-databag-upload"]
-  # Running into order of operations issues, don't do this until after the supermarket data bag has been uploaded
-  depends_on = ["null_resource.supermarket-databag-upload"]
-  # Make json file for fieri data bag item
-  provisioner "local-exec" {
-    command = <<EOF
-    cat <<FILE > databags/apps/fieri.json
-{
-  "id": "fieri",
-  "auth_token": "${var.fieri_key}",
-  "results_endpoint": "https://${module.supermarket-server.public_ip}/api/v1/cookbook-verisons/evaluation"
-}
-FILE
-EOF
-  }
-
-  # Upload json file to create data bag
-  provisioner "local-exec" {
-    command = "knife data bag from file apps databags/apps/fieri.json"
-  }
-}
-
-# Create Fieri node
-resource "null_resource" "fieri-node-setup" {
-  # Running into timing issues with bootstrapping the fieri node, so adding in a sleep of 720 to give it more time to become available
-  depends_on = ["null_resource.fieri-databag-setup", "null_resource.upload-fieri-cookbooks"]
-  provisioner "local-exec" {
-    command = "knife bootstrap ${module.fieri-server.public_ip} -i ${var.private_ssh_key_path} -N fieri-node -x ubuntu --sudo"
-  }
-}
-
-# Configure Fieri node
-resource "null_resource" "configure-fieri-node" {
-  depends_on = ["null_resource.fieri-node-setup"]
-  provisioner "local-exec" {
-    command = "knife node run_list add fieri-node 'recipe[fieri::default]'"
-  }
-
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.fieri-server.public_ip} 'sudo chef-client'"
-  }
-}
-
-# Transfer Supermarket certificate to Fieri
-
-resource "null_resource" "supermarket-fieri-certificate-setup" {
-  depends_on = ["null_resource.configure-fieri-node"]
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.supermarket-server.public_ip} 'sudo chown ubuntu /var/opt/supermarket'"
-  }
-
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.supermarket-server.public_ip} 'sudo chown ubuntu /var/opt/supermarket/ssl'"
-  }
-
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.supermarket-server.public_ip} 'sudo chown ubuntu /var/opt/supermarket/ssl/ca'"
-  }
-
-  provisioner "local-exec" {
-    command = "scp -i ${var.private_ssh_key_path} ubuntu@${module.supermarket-server.public_ip}:/var/opt/supermarket/ssl/ca/${module.supermarket-server.public_ip}.crt ."
-  }
-
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.fieri-server.public_ip} 'sudo chown ubuntu /usr/share/ca-certificates'"
-  }
-
-  provisioner "local-exec" {
-    command = "scp -i ${var.private_ssh_key_path} ./${module.supermarket-server.public_ip}.crt ubuntu@${module.fieri-server.public_ip}:/usr/share/ca-certificates"
-  }
-
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.fieri-server.public_ip} 'sudo chown ubuntu /etc/ca-certificates.conf'"
-  }
-
-  provisioner "local-exec" {
-    # This adds the supermarket self signed certificate to the top of the list of certificates in /etc/ca-certificates.conf on the Fieri server
-#    command = "scp -i ${var.private_ssh_key_path} ubuntu@${module.fieri-server.public_ip} 'sed -i 's/mozilla\/A-Trust-nQual-03.crt/${module.supermarket-server.public_ip}.crt\nmozilla\/A-Trust-nQual-03.crt/'"
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.fieri-server.public_ip} 'echo ${module.supermarket-server.public_ip}.crt >> /etc/ca-certificates.conf'"
-  }
-
-  provisioner "local-exec" {
-    command = "ssh -i ${var.private_ssh_key_path} ubuntu@${module.fieri-server.public_ip} 'sudo update-ca-certificates'"
   }
 }
