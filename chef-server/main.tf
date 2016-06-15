@@ -17,6 +17,10 @@ resource "template_file" "chef_bootstrap" {
   }
 }
 
+resource "template_file" "chef_solo" {
+  template = "${file("${path.module}/templates/chef_solo.tpl")}"
+}
+
 resource "aws_instance" "chef-server" {
   ami = "${var.ami}"
   instance_type = "${var.instance_type}"
@@ -39,9 +43,9 @@ resource "aws_instance" "chef-server" {
     }
   }
 
-  provisioner "file" {                                                           
+  provisioner "file" {
     source = "${path.module}/cookbooks"
-    destination = "/var/chef/"
+    destination = "~/"
     connection {
       type = "ssh"
       user = "ubuntu"
@@ -76,6 +80,7 @@ EOF
   provisioner "remote-exec" {
     inline = [
       "curl -L https://www.chef.io/chef/install.sh | sudo bash",
+      "sudo mkdir /etc/chef",
       "sudo chef-solo -o 'recipe[chef-server::default]' -j /tmp/dna.json",
       "echo '${template_file.chef_bootstrap.rendered}' > /tmp/bootstrap-chef-server.sh",
       "chmod +x /tmp/bootstrap-chef-server.sh",
