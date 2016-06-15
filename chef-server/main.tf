@@ -17,10 +17,6 @@ resource "template_file" "chef_bootstrap" {
   }
 }
 
-resource "template_file" "chef_solo" {
-  template = "${file("${path.module}/templates/chef_solo.tpl")}"
-}
-
 resource "aws_instance" "chef-server" {
   ami = "${var.ami}"
   instance_type = "${var.instance_type}"
