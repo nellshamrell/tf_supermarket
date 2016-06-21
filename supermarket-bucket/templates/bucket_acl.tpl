@@ -9,7 +9,7 @@
         "Resource": "arn:aws:s3:::${bucket_name}",
         "Principal": {
                         "AWS": [
-                                "arn:aws:iam::142602949470:user/${aws_iam_username}"
+                                "arn:aws:iam::${user_arn}:user/${aws_iam_username}"
                         ]
                 }
                 }
