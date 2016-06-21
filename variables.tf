@@ -4,6 +4,7 @@ variable "region" {
   default = "us-west-2"
 }
 variable "aws_iam_username" {}
+variable "aws_user_arn" {}
 variable "instance_type" {}
 variable "ami" {}
 variable "private_ssh_key_path" {}

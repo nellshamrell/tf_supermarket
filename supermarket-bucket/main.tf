@@ -10,6 +10,7 @@ resource "template_file" "bucket_acl" {
     bucket_name = "${var.bucket_name}"
     acl = "${var.bucket_acl}"
     policy = "${var.region}"
+    aws_user_arn = "${var.aws_user_arn}"
     aws_iam_username = "${var.aws_iam_username}"
   }
 }

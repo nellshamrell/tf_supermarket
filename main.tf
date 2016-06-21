@@ -57,6 +57,7 @@ module "supermarket-bucket" {
   access_key = "${var.access_key}"
   secret_key = "${var.secret_key}"
   region = "${var.region}"
+  aws_user_arn = "${var.aws_user_arn}"
   aws_iam_username = "${var.aws_iam_username}"
   bucket_name = "${var.bucket_name}"
   bucket_acl = "${var.bucket_acl}"
