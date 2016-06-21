@@ -4,6 +4,7 @@ region = "Your preferred AWS region"  (NOTE: This MUST be us-east-1 until this i
 instance_type = "You preferred AWS instance type"
 ami = "Your preferred AWS AMI id"
 aws_iam_username = "Username of your AWS IAM user"
+aws_user_arn = "User arn number"
 
 private_ssh_key_path = "Path to your AWS private key (part of your AWS key pair)"
 key_name = "Name of your AWS KEY PAIR"
