@@ -167,7 +167,7 @@ resource "null_resource" "supermarket-databag-setup" {
   "s3_bucket": "${var.bucket_name}",
   "s3_access_key_id": "${var.access_key}",
   "s3_secret_access_key": "${var.secret_key}",
-  "fieri_supermarket_endpoint": "https://${module.supermarket-server.public_dns}",
+  "fieri_supermarket_endpoint": "http://localhost:13000",
   "fieri_key": "${var.fieri_key}"
 }
 FILE
