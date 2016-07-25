@@ -167,7 +167,7 @@ resource "null_resource" "supermarket-databag-setup" {
   "s3_bucket": "${var.bucket_name}",
   "s3_access_key_id": "${var.access_key}",
   "s3_secret_access_key": "${var.secret_key}",
-  "fieri_results_endpoint": "https://${module.supermarket-server.public_dns}/api/v1/cookbook-versions/evaluation",
+  "fieri_supermarket_endpoint": "https://${module.supermarket-server.public_dns}",
   "fieri_key": "${var.fieri_key}"
 }
 FILE
