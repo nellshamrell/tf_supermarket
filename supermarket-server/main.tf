@@ -10,6 +10,7 @@ resource "aws_instance" "supermarket-server" {
   tags {
     Name = "supermarket-server"
   }
-  security_groups = ["${split(",", var.security_groups)}"]
+  subnet_id = "${var.subnet_id}"
+  vpc_security_group_ids = ["${split(",", var.vpc_security_group_ids)}"]
   key_name = "${var.key_name}"
 }

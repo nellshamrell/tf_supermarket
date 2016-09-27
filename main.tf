@@ -4,13 +4,6 @@ provider "aws" {
   region = "${var.region}"
 }
 
-module "security-group" {
-  source = "./security-group"
-  access_key = "${var.access_key}"
-  secret_key = "${var.secret_key}"
-  region = "${var.region}"
-}
-
 module "chef-server" {
   source = "./chef-server"
   access_key = "${var.access_key}"
@@ -18,9 +11,8 @@ module "chef-server" {
   region = "${var.region}"
   instance_type = "${var.instance_type}"
   ami = "${var.ami}"
-
-  # Must be assigned to the default security group to be able to connect to other instances (i.e. the RDS DB) on the same VPC
-  security_groups = "${module.security-group.security-group-name},default"
+  subnet_id = "${var.subnet_id}"
+  vpc_security_group_ids = "${var.vpc_security_group_ids}"
 
   key_name = "${var.key_name}"
   private_ssh_key_path = "${var.private_ssh_key_path}"
@@ -39,9 +31,8 @@ module "supermarket-server" {
   region = "${var.region}"
   instance_type = "${var.instance_type}"
   ami = "${var.ami}"
-
-  # Must be assigned to the default security group to be able to connect to other instances (i.e. the RDS DB) on the same VPC
-  security_groups = "${module.security-group.security-group-name},default"
+  subnet_id = "${var.subnet_id}"
+  vpc_security_group_ids = "${var.vpc_security_group_ids}"
 
   key_name = "${var.key_name}"
 }

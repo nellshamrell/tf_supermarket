@@ -5,5 +5,6 @@ variable "region" {
 }
 variable "instance_type" {}
 variable "ami" {}
-variable "security_groups" {}
+variable "subnet_id" {}
+variable "vpc_security_group_ids" {}
 variable "key_name" {}

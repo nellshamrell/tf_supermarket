@@ -7,6 +7,8 @@ variable "aws_iam_username" {}
 variable "aws_user_arn" {}
 variable "instance_type" {}
 variable "ami" {}
+variable "subnet_id" {}
+variable "vpc_security_group_ids" {}
 variable "private_ssh_key_path" {}
 variable "key_name" {}
 variable "chef-server-user" {}

@@ -23,7 +23,8 @@ resource "aws_instance" "chef-server" {
   tags {
     Name = "chef-server"
   }
-  security_groups = ["${split(",", var.security_groups)}"]
+  subnet_id = "${var.subnet_id}"
+  vpc_security_group_ids = ["${split(",", var.vpc_security_group_ids)}"]
   key_name = "${var.key_name}"
 
   # Sets up directories for cookbooks to create the Chef Server
@@ -41,7 +42,7 @@ resource "aws_instance" "chef-server" {
 
   provisioner "file" {
     source = "${path.module}/cookbooks"
-    destination = "~/"
+    destination = "/var/chef"
     connection {
       type = "ssh"
       user = "ubuntu"
